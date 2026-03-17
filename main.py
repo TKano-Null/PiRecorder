@@ -6,12 +6,14 @@ from datetime import datetime
 
 # 設定
 SAVE_DIR = "/home/username/monitor_videos"  # 保存先ディレクトリ
-MAX_FILES = 96                        # 最大保持ファイル数（1日分）
-DURATION = 900                        # 動体検知後の録画秒数
-VIDEO_DEVICE = '/dev/video0'          # ビデオデバイス
+MAX_FILES = 5                        # 最大保持ファイル数（1日分）
+DURATION = 10                        # 動体検知後の録画秒数
+VIDEO_DEVICE = 0                      # ビデオデバイス（OpenCV用インデックス）
+VIDEO_DEVICE_PATH = '/dev/video0'     # ビデオデバイス（ffmpeg用パス）
 AUDIO_DEVICE = 'hw:2,0'              # オーディオデバイス
 MOTION_THRESHOLD = 5000               # 動体検知の閾値（小さいほど敏感）
 MIN_CONTOUR_AREA = 500                # 検知する動体の最小面積
+WARMUP_FRAMES = 30                    # カメラ安定化のための読み捨てフレーム数
 
 if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
@@ -36,11 +38,12 @@ def record_video(filename):
         '-f', 'v4l2',
         '-framerate', '10',
         '-video_size', '640x480',
-        '-i', VIDEO_DEVICE,
+        '-i', VIDEO_DEVICE_PATH,
         '-f', 'alsa',
         '-channels', '1',
         '-i', AUDIO_DEVICE,
         '-t', str(DURATION),
+        '-vf', "drawtext=text='%{localtime}':fontsize=20:fontcolor=white:borderw=2:bordercolor=black:x=10:y=10",
         '-c:v', 'libx264',
         '-preset', 'ultrafast',
         '-crf', '32',
@@ -66,6 +69,10 @@ def detect_motion():
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+    print("Waiting for camera to stabilize...")
+    for _ in range(WARMUP_FRAMES):
+        cap.read()
 
     print("Monitoring for motion...")
     prev_frame = None
@@ -105,12 +112,15 @@ def detect_motion():
                 exit(1)
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            print("Waiting for camera to stabilize...")
+            for _ in range(WARMUP_FRAMES):
+                cap.read()
             prev_frame = None
             print("Monitoring for motion...")
         else:
             prev_frame = gray
 
-        time.sleep(0.1)
+        time.sleep(0.2)
 
     cap.release()
 
