@@ -5,7 +5,7 @@ import cv2
 from datetime import datetime
 
 # 設定
-SAVE_DIR = "/home/tenkoumituru/monitor_videos"  # 保存先ディレクトリ
+SAVE_DIR = "/home/username/monitor_videos"  # 保存先ディレクトリ
 MAX_FILES = 96                        # 最大保持ファイル数（1日分）
 DURATION = 900                        # 動体検知後の録画秒数
 VIDEO_DEVICE = '/dev/video0'          # ビデオデバイス
